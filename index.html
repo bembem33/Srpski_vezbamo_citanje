@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vežba Čitanja</title>
+    <style>
+        :root {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            text-align: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 8rem;
+            font-size: 1.2rem;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.2rem;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #syllable-output {
+            background-color: white;
+            padding: 1.5rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            min-height: 8rem;
+            font-size: 1.5rem;
+        }
+
+        .syllable {
+            display: inline-block;
+            margin: 0 0.2rem;
+            padding: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .syllable-read {
+            background-color: #d1e7dd;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            textarea {
+                height: 6rem;
+            }
+
+            button {
+                font-size: 1rem;
+                padding: 0.8rem;
+            }
+
+            #syllable-output {
+                font-size: 1.2rem;
+                padding: 1rem;
+            }
+
+            .syllable {
+                font-size: 1rem;
+                padding: 0.3rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            textarea {
+                height: 5rem;
+            }
+
+            button {
+                font-size: 0.9rem;
+                padding: 0.6rem;
+            }
+
+            #syllable-output {
+                font-size: 1rem;
+            }
+
+            .syllable {
+                font-size: 0.9rem;
+                padding: 0.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vežba Čitanja</h1>
+        <textarea id="input-text" placeholder="Unesi tekst ovde..."></textarea>
+        <button id="prepare-btn">Pripremi tekst za čitanje</button>
+        <div id="syllable-output"></div>
+        <button id="start-reading-btn">Započni čitanje</button>
+    </div>
+
+    <script>
+        // Funkcija za deljenje reči na slogove po vokalima
+        function podeliNaSlogove(rec) {
+            const vokali = 'aeiouAEIOUаеиоуАЕИОУ'; // Vokali u latinici i ćirilici
+            let slogovi = [];
+            let slog = '';
+
+            for (let i = 0; i < rec.length; i++) {
+                slog += rec[i];
+                if (vokali.includes(rec[i]) || (i < rec.length - 1 && vokali.includes(rec[i + 1]))) {
+                    slogovi.push(slog);
+                    slog = '';
+                }
+            }
+
+            if (slog) {
+                slogovi.push(slog); // Dodaj preostali deo ako postoji
+            }
+
+            return slogovi;
+        }
+
+        // Funkcija za razdvajanje teksta na slogove za svaku reč
+        function pripremiTekstZaCitanje(tekst) {
+            const reci = tekst.split(/\s+/); // Podeli tekst po razmacima
+            let rezultat = [];
+
+            reci.forEach(rec => {
+                const slogovi = podeliNaSlogove(rec);
+                rezultat.push(slogovi.join('-')); // Slogove podeli crticom
+            });
+
+            return rezultat.join(' ');
+        }
+
+        // Pripremanje teksta za čitanje
+        document.getElementById('prepare-btn').addEventListener('click', function() {
+            const inputText = document.getElementById('input-text').value;
+            const slogovaniTekst = pripremiTekstZaCitanje(inputText);
+            const izlazSlogova = document.getElementById('syllable-output');
+
+            izlazSlogova.innerHTML = '';
+
+            slogovaniTekst.split(' ').forEach((rec, index) => {
+                const span = document.createElement('span');
+                span.classList.add('syllable');
+                span.textContent = rec;
+                izlazSlogova.appendChild(span);
+                izlazSlogova.appendChild(document.createTextNode(' ')); // Dodaj razmak između reči
+            });
+        });
+
+        // Funkcionalnost za prepoznavanje govora na Androidu i iOS-u
+        document.getElementById('start-reading-btn').addEventListener('click', function() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert('Ovaj pretraživač ne podržava prepoznavanje govora.');
+                return;
+            }
+
+            const prepoznavanje = new SpeechRecognition();
+            prepoznavanje.lang = 'sr-RS'; // Jezik prepoznavanja
+            prepoznavanje.continuous = true;
+            prepoznavanje.interimResults = false;
+
+            prepoznavanje.onresult = function(event) {
+                const rezultati = event.results;
+                const slogovi = document.querySelectorAll('.syllable');
+
+                for (let i = 0; i < rezultati.length; i++) {
+                    const transkript = rezultati[i][0].transcript.trim().toLowerCase();
+                    slogovi.forEach(slog => {
+                        if (!slog.classList.contains('syllable-read') && transkript.includes(slog.textContent.toLowerCase())) {
+                            slog.classList.add('syllable-read');
+                        }
+                    });
+                }
+            };
+
+            prepoznavanje.onerror = function(event) {
+                console.error('Greška u prepoznavanju govora:', event.error);
+            };
+
+            prepoznavanje.start();
+        });
+    </script>
+</body>
+</html>
